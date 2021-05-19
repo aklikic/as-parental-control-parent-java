@@ -1,0 +1,31 @@
+// This is the public API offered by your entity.
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "akkaserverless/annotations.proto";
+import "google/api/annotations.proto";
+import "childdevice/pc_childdevice_domain.proto";
+
+package com.lightbend.gsa.parentalcontrol.parent.subscribe;
+
+option go_package = "com/lightbend/gsa/parentalcontrol/parent/subscribe";
+
+
+service ChildDeviceSubscribe {
+    rpc ConsumeParentAdded(com.lightbend.gsa.parentalcontrol.childdevice.persistence.ParentAdded) returns (google.protobuf.Empty) {
+        option (akkaserverless.method).eventing = {
+            in: {
+                topic: "pc-childdevice-parent";
+            }
+        };
+    }
+
+    rpc ConsumeParentRemoved(com.lightbend.gsa.parentalcontrol.childdevice.persistence.ParentRemoved) returns (google.protobuf.Empty) {
+        option (akkaserverless.method).eventing = {
+            in: {
+                topic: "pc-childdevice-parent";
+            }
+        };
+    }
+
+}

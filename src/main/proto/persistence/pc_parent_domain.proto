@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+option go_package = "com/lightbend/gsa/parentalcontrol/parent/persistence;persistence";
+package com.lightbend.gsa.parentalcontrol.parent.persistence;
+
+import "akkaserverless/annotations.proto";
+
+option (akkaserverless.file).event_sourced_entity = {
+    name: "ParentEntity"
+    entity_type: "ParentEntity"
+    state: { type: "ParentState" }
+    event: { type: "ParentCreated" }
+    event: { type: "ParentUpdated" }
+    event: { type: "ParentDeleted" }
+    event: { type: "ChildDeviceAdded" }
+    event: { type: "ChildDeviceRemoved" }
+};
+
+message ParentCreated {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string name = 2;
+    string email = 3;
+}
+
+message ParentUpdated {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string name = 2;
+    string email = 3;
+}
+
+message ParentDeleted {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message ChildDeviceAdded {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string device_id = 2;
+    string child_name = 3;
+}
+
+message ChildDeviceRemoved {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string device_id = 2;
+}
+
+message ParentState {
+    string name = 1;
+    string email = 2;
+    repeated ChildDeviceState child_devices = 3;
+}
+
+message ChildDeviceState {
+    string device_id = 1;
+    string child_name = 2;
+}

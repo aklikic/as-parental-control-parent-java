@@ -1,0 +1,54 @@
+// This is the public API offered by your entity.
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "akkaserverless/annotations.proto";
+import "google/api/annotations.proto";
+import "persistence/pc_parent_domain.proto";
+
+package com.lightbend.gsa.parentalcontrol.parent.view;
+
+option go_package = "com/lightbend/gsa/parentalcontrol/parent/view";
+
+message GetParentByNameRequest{
+    string name = 1;
+}
+
+message ParentView{
+    string parent_id = 1;
+    string name = 2;
+}
+
+service ParentByName {
+    //option (akkaserverless.service).entity.type = ".persistence.ParentEntity";
+    rpc ProcessParentCreated(com.lightbend.gsa.parentalcontrol.parent.persistence.ParentCreated) returns (ParentView) {
+        option (akkaserverless.method).eventing.in = {
+            event_sourced_entity: "ParentEntity"
+        };
+        option (akkaserverless.method).view.update = {
+            table: "parent"
+            transform_updates: true
+        };
+    }
+
+    rpc ProcessParentUpdated(com.lightbend.gsa.parentalcontrol.parent.persistence.ParentUpdated) returns (ParentView) {
+        option (akkaserverless.method).eventing.in = {
+            event_sourced_entity: "ParentEntity"
+        };
+        option (akkaserverless.method).view.update = {
+            table: "parent"
+            transform_updates: true
+        };
+    }
+
+    rpc GetParents(GetParentByNameRequest) returns (stream ParentView) {
+        option (akkaserverless.method).view.query = {
+            query: "SELECT * FROM parent WHERE name = :name"
+        };
+        option (google.api.http) = {
+            post: "/parental-control/parents-by-name",
+            body: "*"
+        };
+    }
+
+}

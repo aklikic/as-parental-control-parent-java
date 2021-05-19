@@ -1,0 +1,92 @@
+// This is the public API offered by your entity.
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "akkaserverless/annotations.proto";
+import "google/api/annotations.proto";
+
+package com.lightbend.gsa.parentalcontrol.parent;
+
+option go_package = "com/lightbend/gsa/parentalcontrol/parent";
+
+message CreateParentCommand {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string name = 2;
+    string email = 3;
+}
+
+message UpdateParentCommand {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string name = 2;
+    string email = 3;
+}
+
+message DeleteParentCommand {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message GetParentCommand {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+}
+
+message AddChildDeviceCommand {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string device_id = 2;
+    string child_name = 3;
+}
+
+message RemoveChildDeviceCommand {
+    string parent_id = 1 [(akkaserverless.field).entity_key = true];
+    string device_id = 2;
+}
+
+message Parent {
+    string name = 1;
+    string email = 2;
+    repeated ChildDevice child_devices = 3;
+}
+
+message ChildDevice {
+    string device_id = 1;
+    string child_name = 2;
+}
+
+service ParentService {
+    option (akkaserverless.service).entity.type = ".persistence.ParentEntity";
+
+    rpc CreateParent(CreateParentCommand) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+            post: "/parental-control/parents/{parent_id}"
+            body: "*"
+        };
+    };
+    rpc UpdateParent(UpdateParentCommand) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+            put: "/parental-control/parents/{parent_id}"
+            body: "*"
+        };
+    };
+    rpc DeleteParent(DeleteParentCommand) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+            delete: "/parental-control/parents/{parent_id}"
+        };
+    };
+    rpc GetParent(GetParentCommand) returns (Parent){
+        option (google.api.http) = {
+            get: "/parental-control/parents/{parent_id}"
+        };
+    };
+
+    rpc AddChildDevice(AddChildDeviceCommand) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+            post: "/parental-control/parents/{parent_id}/child-devices/{device_id}"
+            body: "*"
+        };
+    };
+    rpc RemoveChildDevice(RemoveChildDeviceCommand) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+            delete: "/parental-control/parents/{parent_id}/child-devices/{device_id}"
+        };
+    };
+
+}
