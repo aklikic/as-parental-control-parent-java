@@ -10,12 +10,15 @@
       <extension>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>
-        <version>1.6.0</version>
+        <version>1.7.0</version>
       </extension>
     </extensions>
     <resources>
       <resource>
         <directory>${project.build.directory}/generated-resources</directory>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
       </resource>
     </resources>
     <plugins>
@@ -33,18 +36,42 @@
         <version>0.6.1</version>
         <executions>
           <execution>
+            <id>protobuf</id>
             <goals>
               <goal>compile</goal>
             </goals>
+            <configuration>
+              <writeDescriptorSet>true</writeDescriptorSet>
+              <includeSourceInfoInDescriptorSet>true</includeSourceInfoInDescriptorSet>
+              <descriptorSetFileName>user-function.desc</descriptorSetFileName>
+              <checkStaleness>true</checkStaleness>
+              <protocArtifact>com.google.protobuf:protoc:3.9.1:exe:${os.detected.classifier}</protocArtifact>
+            </configuration>
+          </execution>
+          <execution>
+            <id>grpc-client</id>
+            <goals>
+              <goal>test-compile</goal>
+            </goals>
+            <configuration>
+              <writeDescriptorSet>true</writeDescriptorSet>
+              <includeSourceInfoInDescriptorSet>true</includeSourceInfoInDescriptorSet>
+              <protoTestSourceRoot>src/main/proto</protoTestSourceRoot>
+              <descriptorSetFileName>user-function-test.desc</descriptorSetFileName>
+              <checkStaleness>true</checkStaleness>
+              <protocArtifact>com.google.protobuf:protoc:3.9.1:exe:${os.detected.classifier}</protocArtifact>
+              <protocPlugins>
+                <protocPlugin>
+                  <id>akka-grpc</id>
+                  <groupId>com.lightbend.akka.grpc</groupId>
+                  <artifactId>akka-grpc-scalapb-protoc-plugin_2.12</artifactId>
+                  <version>${akka-grpc.version}</version>
+                  <mainClass>akka.grpc.gen.Main</mainClass>
+                </protocPlugin>
+              </protocPlugins>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <writeDescriptorSet>true</writeDescriptorSet>
-          <includeSourceInfoInDescriptorSet>true</includeSourceInfoInDescriptorSet>
-          <descriptorSetFileName>user-function.desc</descriptorSetFileName>
-          <checkStaleness>true</checkStaleness>
-          <protocArtifact>com.google.protobuf:protoc:3.9.1:exe:${os.detected.classifier}</protocArtifact>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
@@ -61,7 +88,7 @@
                   <resource>reference.conf</resource>
                 </transformer>
                 <transformer>
-                  <mainClass>${akkasls.mainClass}</mainClass>
+                  <mainClass>${mainClass}</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -71,7 +98,7 @@
       <plugin>
         <groupId>io.fabric8</groupId>
         <artifactId>docker-maven-plugin</artifactId>
-        <version>0.26.1</version>
+        <version>0.36.0</version>
         <executions>
           <execution>
             <id>build-docker-image</id>
@@ -91,11 +118,11 @@
         <configuration>
           <images>
             <image>
-              <name>${akkasls.dockerImage}:%l</name>
+              <name>${dockerImage}:%l</name>
               <build>
                 <from>docker.io/library/adoptopenjdk:${jdk.target}-jre-hotspot</from>
                 <tags>
-                  <tag>${akkasls.dockerTag}</tag>
+                  <tag>${dockerTag}</tag>
                 </tags>
                 <ports>
                   <port>8080</port>
@@ -125,13 +152,22 @@
           </execution>
         </executions>
         <configuration>
-          <mainClass>${akkasls.mainClass}</mainClass>
+          <mainClass>${mainClass}</mainClass>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+        <configuration>
+          <excludes>
+            <exclude>**/*IntegrationTest</exclude>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>
         <groupId>com.lightbend</groupId>
         <artifactId>akkasls-maven-plugin</artifactId>
-        <version>0.20.2</version>
+        <version>0.31.0</version>
         <executions>
           <execution>
             <goals>
@@ -141,8 +177,9 @@
           </execution>
         </executions>
         <configuration>
-          <dockerImage>${akkasls.dockerImage}:${akkasls.dockerTag}</dockerImage>
-          <mainClass>${akkasls.mainClass}</mainClass>
+          <dockerImage>${dockerImage}:${dockerTag}</dockerImage>
+          <mainClass>${mainClass}</mainClass>
+          <integrationTestSourceDirectory>src/it/java</integrationTestSourceDirectory>
         </configuration>
       </plugin>
       <plugin>
@@ -154,14 +191,73 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>it</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.2.0</version>
+            <executions>
+              <execution>
+                <id>add-integration-test-source</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/it/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+              <execution>
+                <id>add-integration-test-resource</id>
+                <phase>generate-test-resources</phase>
+                <goals>
+                  <goal>add-test-resource</goal>
+                </goals>
+                <configuration>
+                  <resources>
+                    <resource>
+                      <directory>src/it/resources</directory>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>2.22.2</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <includes>
+                    <include>**/*IntegrationTest</include>
+                  </includes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
   <repositories>
     <repository>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
       <id>lightbend-akkaserverless</id>
-      <name>cloudsmith</name>
-      <url>https://dl.cloudsmith.io/public/lightbend/akkaserverless/maven/</url>
+      <name>repo-lightbend-com-akkaserverless</name>
+      <url>https://repo.lightbend.com/lightbend/akkaserverless/</url>
     </repository>
   </repositories>
   <pluginRepositories>
@@ -170,11 +266,23 @@
         <enabled>false</enabled>
       </snapshots>
       <id>lightbend-akkaserverless</id>
-      <name>cloudsmith</name>
-      <url>https://dl.cloudsmith.io/public/lightbend/akkaserverless/maven/</url>
+      <name>repo-lightbend-com-akkaserverless</name>
+      <url>https://repo.lightbend.com/lightbend/akkaserverless/</url>
     </pluginRepository>
   </pluginRepositories>
   <dependencies>
+    <dependency>
+      <groupId>com.akkaserverless</groupId>
+      <artifactId>akkaserverless-java-sdk-testkit</artifactId>
+      <version>0.7.0-beta.10</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>testcontainers</artifactId>
+          <groupId>org.testcontainers</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -208,12 +316,27 @@
       </exclusions>
     </dependency>
   </dependencies>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.typesafe.akka</groupId>
+        <artifactId>akka-bom_${scala.binary.version}</artifactId>
+        <version>${akka-streams.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <properties>
-    <akkasls.mainClass>com.lightbend.gsa.parentalcontrol.parent.Main</akkasls.mainClass>
+    <scala.binary.version>2.13</scala.binary.version>
     <jdk.target>11</jdk.target>
-    <akkasls.dockerTag>${project.version}</akkasls.dockerTag>
+    <dockerImage>my-docker-repo/${project.artifactId}</dockerImage>
+    <mainClass>com.lightbend.gsa.parentalcontrol.parent.Main</mainClass>
+    <akkaserverless-sdk.version>0.7.0-beta.10</akkaserverless-sdk.version>
+    <akka-grpc.version>1.1.1</akka-grpc.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <akkasls.dockerImage>my-docker-repo/${project.artifactId}</akkasls.dockerImage>
+    <akka-streams.version>2.6.14</akka-streams.version>
+    <dockerTag>${project.version}</dockerTag>
   </properties>
 </project>
 

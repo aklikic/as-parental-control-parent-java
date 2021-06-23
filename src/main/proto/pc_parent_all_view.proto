@@ -10,18 +10,17 @@ package com.lightbend.gsa.parentalcontrol.parent.view;
 
 option go_package = "com/lightbend/gsa/parentalcontrol/parent/view";
 
-message GetParentByNameRequest{
-    string name = 1;
+message GetAllParentsRequest{
 }
 
-message ParentView{
+message ParentAllView{
     string parent_id = 1;
     string name = 2;
 }
 
-service ParentByName {
+service ParentAll {
     //option (akkaserverless.service).entity.type = ".persistence.ParentEntity";
-    rpc ProcessParentCreated(com.lightbend.gsa.parentalcontrol.parent.persistence.ParentCreated) returns (ParentView) {
+    rpc ProcessParentCreated(com.lightbend.gsa.parentalcontrol.parent.persistence.ParentCreated) returns (ParentAllView) {
         option (akkaserverless.method).eventing.in = {
             event_sourced_entity: "ParentEntity"
         };
@@ -31,7 +30,7 @@ service ParentByName {
         };
     }
 
-    rpc ProcessParentUpdated(com.lightbend.gsa.parentalcontrol.parent.persistence.ParentUpdated) returns (ParentView) {
+    rpc ProcessParentUpdated(com.lightbend.gsa.parentalcontrol.parent.persistence.ParentUpdated) returns (ParentAllView) {
         option (akkaserverless.method).eventing.in = {
             event_sourced_entity: "ParentEntity"
         };
@@ -41,12 +40,12 @@ service ParentByName {
         };
     }
 
-    rpc GetParents(GetParentByNameRequest) returns (stream ParentView) {
+    rpc GetParents(GetAllParentsRequest) returns (stream ParentAllView) {
         option (akkaserverless.method).view.query = {
-            query: "SELECT * FROM parent WHERE name = :name"
+            query: "SELECT * FROM parent"
         };
         option (google.api.http) = {
-            post: "/parental-control/parents-by-name",
+            post: "/parental-control/parents-all",
             body: "*"
         };
     }

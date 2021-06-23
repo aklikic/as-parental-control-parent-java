@@ -1,40 +1,45 @@
-package com.lightbend.gsa.parentalcontrol.parent;
+package com.lightbend.gsa.parentalcontrol.parent.persistence;
 
 import com.akkaserverless.javasdk.EntityId;
-import com.akkaserverless.javasdk.eventsourcedentity.*;
 import com.google.protobuf.Empty;
-import com.lightbend.gsa.parentalcontrol.parent.persistence.PcParentDomain;
+import com.lightbend.gsa.parentalcontrol.parent.PcParentApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+
+import com.akkaserverless.javasdk.eventsourcedentity.CommandContext;
+import com.akkaserverless.javasdk.eventsourcedentity.EventSourcedEntity;
+import com.lightbend.gsa.parentalcontrol.parent.persistence.PcParentDomain;
+
 /** An event sourced entity. */
 @EventSourcedEntity(entityType = "ParentEntity")
-public class ParentServiceImpl extends ParentService {
-    private static Logger log = LoggerFactory.getLogger(ParentServiceImpl.class);
+public class ParentEntityImpl extends ParentEntityInterface {
+
+    private static Logger log = LoggerFactory.getLogger(ParentEntityImpl.class);
     @SuppressWarnings("unused")
     private final String entityId;
     private PcParentApi.Parent state;
-    
-    public ParentServiceImpl(@EntityId String entityId) {
+
+    public ParentEntityImpl(@EntityId String entityId) {
         this.entityId = entityId;
     }
-    
+
     @Override
     public PcParentDomain.ParentState snapshot() {
         log.info("[{}] snapshot",entityId);
         return convert(state);
     }
-    
+
     @Override
     public void handleSnapshot(PcParentDomain.ParentState snapshot) {
         log.info("[{}] handleSnapshot: {}",entityId,snapshot);
-       this.state = convert(snapshot);
-        
+        this.state = convert(snapshot);
+
     }
-    
+
     @Override
     public Empty createParent(PcParentApi.CreateParentCommand command, CommandContext ctx) {
         log.info("[{}] createParent: {} ",entityId,command);
@@ -48,12 +53,12 @@ public class ParentServiceImpl extends ParentService {
         ctx.emit(event);
         return Empty.getDefaultInstance();
     }
-    
+
     @Override
     public Empty updateParent(PcParentApi.UpdateParentCommand command, CommandContext ctx) {
-       log.info("[{}] updateParent: {} ",entityId,command);
-       if(state==null)
-           throw ctx.fail("Parent does not exist!");
+        log.info("[{}] updateParent: {} ",entityId,command);
+        if(state==null)
+            throw ctx.fail("Parent does not exist!");
         PcParentDomain.ParentUpdated event = PcParentDomain.ParentUpdated.newBuilder()
                 .setParentId(command.getParentId())
                 .setName(command.getName())
@@ -62,7 +67,7 @@ public class ParentServiceImpl extends ParentService {
         ctx.emit(event);
         return Empty.getDefaultInstance();
     }
-    
+
     @Override
     public Empty deleteParent(PcParentApi.DeleteParentCommand command, CommandContext ctx) {
         log.info("[{}] deleteParent",entityId);
@@ -74,13 +79,13 @@ public class ParentServiceImpl extends ParentService {
         ctx.emit(event);
         return Empty.getDefaultInstance();
     }
-    
+
     @Override
     public PcParentApi.Parent getParent(PcParentApi.GetParentCommand command, CommandContext ctx) {
         log.info("[{}] getParent",entityId);
         return state;
     }
-    
+
     @Override
     public Empty addChildDevice(PcParentApi.AddChildDeviceCommand command, CommandContext ctx) {
         log.info("[{}] addChildDevice: {} ",entityId,command);
@@ -96,7 +101,7 @@ public class ParentServiceImpl extends ParentService {
         ctx.emit(event);
         return Empty.getDefaultInstance();
     }
-    
+
     @Override
     public Empty removeChildDevice(PcParentApi.RemoveChildDeviceCommand command, CommandContext ctx) {
         log.info("[{}] removeChildDevice: {} ",entityId,command);
@@ -111,7 +116,7 @@ public class ParentServiceImpl extends ParentService {
         ctx.emit(event);
         return Empty.getDefaultInstance();
     }
-    
+
     @Override
     public void parentCreated(PcParentDomain.ParentCreated event) {
         log.info("[{}] parentCreated: {}",entityId,event);
@@ -120,7 +125,7 @@ public class ParentServiceImpl extends ParentService {
                 .setEmail(event.getEmail())
                 .build();
     }
-    
+
     @Override
     public void parentUpdated(PcParentDomain.ParentUpdated event) {
         log.info("[{}] parentUpdated: {}",entityId,event);
@@ -130,23 +135,23 @@ public class ParentServiceImpl extends ParentService {
                 .addAllChildDevices(state.getChildDevicesList())
                 .build();
     }
-    
+
     @Override
     public void parentDeleted(PcParentDomain.ParentDeleted event) {
         log.info("[{}] parentDeleted: {}",entityId,event);
         state = null;
     }
-    
+
     @Override
     public void childDeviceAdded(PcParentDomain.ChildDeviceAdded event) {
-       log.info("[{}] childDeviceAdded: {}",entityId,event);
-       state = state.toBuilder()
-               .addChildDevices(PcParentApi.ChildDevice.newBuilder()
-                                           .setDeviceId(event.getDeviceId())
-                                           .setChildName(event.getChildName()))
-               .build();
+        log.info("[{}] childDeviceAdded: {}",entityId,event);
+        state = state.toBuilder()
+                .addChildDevices(PcParentApi.ChildDevice.newBuilder()
+                        .setDeviceId(event.getDeviceId())
+                        .setChildName(event.getChildName()))
+                .build();
     }
-    
+
     @Override
     public void childDeviceRemoved(PcParentDomain.ChildDeviceRemoved event) {
         log.info("[{}] childDeviceRemoved: {}",entityId,event);
@@ -158,7 +163,7 @@ public class ParentServiceImpl extends ParentService {
     }
 
     private PcParentApi.Parent convert(PcParentDomain.ParentState state){
-       return PcParentApi.Parent.newBuilder()
+        return PcParentApi.Parent.newBuilder()
                 .setName(state.getName())
                 .setEmail(state.getEmail())
                 .addAllChildDevices(state.getChildDevicesList().stream().map(this::convert).collect(Collectors.toList()))

@@ -52,8 +52,11 @@ message ChildDevice {
 }
 
 service ParentService {
-    option (akkaserverless.service).entity.type = ".persistence.ParentEntity";
 
+    option (akkaserverless.service) = {
+        type: SERVICE_TYPE_ENTITY
+        component: ".persistence.ParentEntity"
+    };
     rpc CreateParent(CreateParentCommand) returns (google.protobuf.Empty){
         option (google.api.http) = {
             post: "/parental-control/parents/{parent_id}"

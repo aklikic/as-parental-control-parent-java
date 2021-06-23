@@ -8,12 +8,8 @@ import "akkaserverless/annotations.proto";
 option (akkaserverless.file).event_sourced_entity = {
     name: "ParentEntity"
     entity_type: "ParentEntity"
-    state: { type: "ParentState" }
-    event: { type: "ParentCreated" }
-    event: { type: "ParentUpdated" }
-    event: { type: "ParentDeleted" }
-    event: { type: "ChildDeviceAdded" }
-    event: { type: "ChildDeviceRemoved" }
+    state: "ParentState"
+    events: ["ParentCreated", "ParentUpdated","ParentDeleted","ChildDeviceAdded","ChildDeviceRemoved"]
 };
 
 message ParentCreated {
