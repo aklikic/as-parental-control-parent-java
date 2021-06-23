@@ -4,6 +4,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "akkaserverless/annotations.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/any.proto";
 import "persistence/pc_parent_domain.proto";
 
 package com.lightbend.gsa.parentalcontrol.parent.view;
@@ -40,13 +41,19 @@ service ParentAll {
         };
     }
 
+    // handle other events which are not managed above
+    rpc CatchOthers(google.protobuf.Any) returns (google.protobuf.Empty) {
+        option (akkaserverless.method).eventing.in = {
+            event_sourced_entity:  "ParentEntity"
+        };
+    }
+
     rpc GetParents(GetAllParentsRequest) returns (stream ParentAllView) {
         option (akkaserverless.method).view.query = {
             query: "SELECT * FROM parent"
         };
         option (google.api.http) = {
-            post: "/parental-control/parents-all",
-            body: "*"
+            get: "/parental-control/parents-all"
         };
     }
 }

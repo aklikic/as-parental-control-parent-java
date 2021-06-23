@@ -4,6 +4,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "akkaserverless/annotations.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/any.proto";
 import "persistence/pc_parent_domain.proto";
 
 package com.lightbend.gsa.parentalcontrol.parent.view;
@@ -38,6 +39,13 @@ service ParentByName {
         option (akkaserverless.method).view.update = {
             table: "parent"
             transform_updates: true
+        };
+    }
+
+    // handle other events which are not managed above
+    rpc CatchOthers(google.protobuf.Any) returns (google.protobuf.Empty) {
+        option (akkaserverless.method).eventing.in = {
+            event_sourced_entity:  "ParentEntity"
         };
     }
 
